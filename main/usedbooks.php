@@ -1,143 +1,112 @@
 <?php
 session_start();
+
 include("../dbcon.php");
-include("config.php");
-include("../authentication.php");
 include("../includes/header.php");
-include("../includes/customer_sidebar.php");
+//include("../includes/customer_sidebar.php");
 include("../includes/topbar.php");
 include("../message.php");
 
-function uploadImage($file) {
-    // Check if file was uploaded without errors
-    if ($file["error"] == UPLOAD_ERR_OK) {
-        $temp_name = $file["tmp_name"];
-        $upload_dir = "uploads/"; // Directory where you want to store uploaded images
-        $file_name = basename($file["name"]);
-        $target_path = $upload_dir . $file_name;
-
-        // Check if file already exists
-        if (file_exists($target_path)) {
-            // If file exists, generate a unique file name
-            $file_name = uniqid() . '_' . $file_name;
-            $target_path = $upload_dir . $file_name;
-        }
-
-        // Move the uploaded file to the specified directory
-        if (move_uploaded_file($temp_name, $target_path)) {
-            // Return the file path if upload was successful
-            return $target_path;
-        } else {
-            // Return false if upload failed
-            return false;
-        }
-    } else {
-        // Return false if file upload encountered an error
-        return false;
-    }
-}
-
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // Retrieve form data
-    $book_name = $_POST["book_name"];
-    $author = $_POST["author"];
-    $publisher = $_POST["publisher"];
-    $published_year = $_POST["published_year"];
-    $condition = $_POST["condition"];
-    $price = $_POST["price"];
-    $isbn = $_POST["isbn"];
-    $category = $_POST["category"];
-    
-    // Process uploaded images (assuming you're storing file paths in the database)
-    $book_image1 = uploadImage($_FILES["book_image1"]);
-    $book_image2 = uploadImage($_FILES["book_image2"]);
-    $book_image3 = uploadImage($_FILES["book_image3"]);
-
-    // Insert data into the database table
-    $sql = "INSERT INTO your_table_name (ubook_name, ubook_author, ubook_publisher, ubook_year, ubook_condition, ubook_price, ubook_isbn, ubook_pic1, ubook_pic2, ubook_pic3) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute([$book_name, $author, $publisher, $published_year, $condition, $price, $isbn, $book_image1, $book_image2, $book_image3]);
-
-    // Redirect to a success page or display a success message
-    header("Location: success.php");
-    exit();
-}
-
 ?>
-    
- 
-
 
 <div style="clear:both;"></div>
 
 <!-- Form to Add a New Book -->
 <div class="container mt-2">
     <h2>Sell Your Book</h2>
-    <form id="add-book-form" enctype="multipart/form-data" action="#">
+    <form id="add-book-form" enctype="multipart/form-data" action="ubook.php" method="POST" onsubmit="return validateForm()">
+    
         <div class="form-group">
             <label for="book_name">Book Name:</label>
-            <input type="text" class="form-control" id="book_name" name="book_name">
+            <input type="text" class="form-control" id="book_name" name="book_name" oninput="validateBookName()">
             <small id="book_name_error" class="error" style="color: red; font-size: small;"></small>
         </div>
-        <div class="form-group">
-            <label for="author">Author:</label>
-            <input type="text" class="form-control" id="author" name="author">
-            <small id="author_error" class="error" style="color: red; font-size: small;"></small>
-        </div>
-        <div class="form-group">
-            <label for="publisher">Publisher:</label>
-            <input type="text" class="form-control" id="publisher" name="publisher">
-            <small id="publisher_error" class="error" style="color: red; font-size: small;"></small>
-        </div>
-        <div class="form-group">
-            <label for="published_year">Published Year:</label>
-            <input type="number" class="form-control" id="published_year" name="published_year" min="1000" max="9999">
-            <small id="published_year_error" class="error" style="color: red; font-size: small;"></small>
-        </div>
-        <div class="form-group">
-            <label for="condition">Condition:</label>
-            <input type="text" class="form-control" id="condition" name="condition">
-            <small id="condition_error" class="error" style="color: red; font-size: small;"></small>
-        </div>
-        <div class="form-group">
-            <label for="price">Price:</label>
-            <input type="number" class="form-control" id="price" name="price" min="0">
-            <small id="price_error" class="error" style="color: red; font-size: small;"></small>
-        </div>
-        <div class="form-group">
-            <label for="isbn">ISBN:</label>
-            <input type="text" class="form-control" id="isbn" name="isbn">
-            <small id="isbn_error" class="error" style="color: red; font-size: small;"></small>
-        </div>
-        <div class="form-group">
-            <label for="isbn">Category:</label>
-            <input type="text" class="form-control" id="category" name="category">
-            <small id="category_error" class="error" style="color: red; font-size: small;"></small>
+
+        <div class="form-row">
+            <div class="form-group col-md-4">
+                <label for="author">Author:</label>
+                <select name="author" class="form-control" oninput="validateAuthor()">
+                    <option value="" selected disabled>Select Author</option>
+                    <?php
+                    $sql = mysqli_query($conn, "SELECT author_id, author_name FROM tbl_author WHERE author_status = 1");
+
+                    while ($row = mysqli_fetch_array($sql)) {
+                        ?>
+                        <option value="<?php echo $row["author_id"] ?>"><?php echo $row["author_name"] ?></option>
+                        <?php
+                    }
+                    ?>
+                </select>
+                <small id="author_error" class="error" style="color: red; font-size: small;"></small>
+            </div>
+        
+            <div class="form-group col-md-4">
+                <label for="condition">Condition:</label>
+                <input type="text" class="form-control" id="condition" name="condition" oninput="validateCondition()">
+                <small id="condition_error" class="error" style="color: red; font-size: small;"></small>
+            </div>
+            <div class="form-group col-md-4">
+                <label for="price">Expected Price:</label>
+                <input type="number" class="form-control" id="price" name="price" min="0" oninput="validatePrice()">
+                <small id="price_error" class="error" style="color: red; font-size: small;"></small>
+            </div>
         </div>
 
-        <div class="row">
-            <div class="col-md-4">
-                <div class="form-group">
-                    <label for="book_image1">Upload Picture 1:</label>
-                    <input type="file" class="form-control-file file-input" id="book_image1" name="book_image1">
-                    <small id="pic1" style="color: red; font-size: small;"></small>
-                </div>
+        <div class="form-row">
+            <div class="form-group col-md-6">
+                <label for="publisher">Publisher:</label>
+                <select name="publisher" class="form-control" oninput="validatePublisher()">
+                <option value="" selected disabled>Select Publisher</option>
+                        <?php
+                        $sql = mysqli_query($conn, "SELECT publisher_id,publisher_name FROM tbl_publisher where publisher_status=1");
+
+                        while ($row = mysqli_fetch_array($sql)) {
+                        ?>
+                            <option value="<?php echo $row["publisher_id"] ?>"><?php echo $row["publisher_name"] ?></option>
+                        <?php } ?>
+                    </select>
+                <small id="publisher_error" class="error" style="color: red; font-size: small;"></small>
             </div>
-            <div class="col-md-4">
-                <div class="form-group">
-                    <label for="book_image2">Upload Picture 2:</label>
-                    <input type="file" class="form-control-file file-input" id="book_image2" name="book_image2">
-                    <small id="pic2" style="color: red; font-size: small;"></small>
-                </div>
+            <div class="form-group col-md-6">
+            <label for="published_year">Published Year:</label>
+            <select class="form-control" id="published_year" name="published_year" oninput="validatePublishedYear()">
+                    <?php
+                    // Get the current year
+                    $currentYear = date('Y');
+                    // Loop through the years, starting from 100 years ago to 10 years in the future
+                    for ($i = $currentYear; $i >= $currentYear - 1000; $i--) {
+                        // Output each year as an option element
+                        echo "<option value=\"$i\">$i</option>";
+                    }
+                    ?>
+                </select>
+                <small id="published_year_error" class="error" style="color: red; font-size: small;"></small>
             </div>
-            <div class="col-md-4">
-                <div class="form-group">
-                    <label for="book_image3">Upload Picture 3:</label>
-                    <input type="file" class="form-control-file file-input" id="book_image3" name="book_image3">
-                    <small id="pic3" style="color: red; font-size: small;"></small>
-                </div>
-            </div>
+            
         </div>
+
+        
+        <div class="form-group">
+            <label for="des">Short Description:</label>
+            <input type="text" class="form-control" id="des" name="des" oninput="validateDescription()">
+            <small id="des_error" class="error" style="color: red; font-size: small;"></small>
+        </div>
+
+        <div class="form-group row">
+    <div class="col-md-4">
+        <input type="file" class="form-control-file file-input" id="image1" name="image1" onchange="validateImage(this)">
+    </div>
+    <div class="col-md-4">
+        <input type="file" class="form-control-file file-input" id="image2" name="image2" onchange="validateImage(this)">
+    </div>
+    <div class="col-md-4">
+        <input type="file" class="form-control-file file-input" id="image3" name="image3" onchange="validateImage(this)">
+    </div>
+</div>
+<div id="image_preview" class="row mt-2"></div>
+<small id="pic_error" class="error" style="color: red; font-size: small;"></small>
+
+
         <div class="row">
             <div class="col-md-12 text-right">
                 <button type="submit" class="btn btn-primary" name="add_ubook" id="submit-btn">Submit</button>
@@ -146,125 +115,178 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     </form>
 </div>
 
-<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-<script src="https://code.jquery.com/jquery-3.6.1.min.js"></script>
-<script type="text/javascript">
-    $(document).ready(function() {
-        // Function to validate each input field
-        function validateInput(input, errorElement, errorMessage) {
-            if (input.val().trim() === '') {
-                errorElement.text(errorMessage);
-                return false;
-            } else {
-                errorElement.text('');
-                return true;
-            }
+
+<link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+<script>
+function displayImagePreview(input) {
+    const file = input.files[0];
+    const reader = new FileReader();
+    
+    reader.onload = function(e) {
+        const imagePreview = document.getElementById('image_preview');
+        const imgContainer = document.createElement('div');
+        imgContainer.className = 'image-container';
+        
+        const img = document.createElement('img');
+        img.src = e.target.result;
+        img.className = 'img-thumbnail';
+        imgContainer.appendChild(img);
+        
+        const deleteBtn = document.createElement('button');
+        deleteBtn.type = 'button';
+        deleteBtn.className = 'delete-btn';
+        deleteBtn.innerHTML = '&times;';
+        deleteBtn.addEventListener('click', function() {
+            imgContainer.remove(); // Remove the image container
+            input.value = ''; // Clear the file input
+        });
+        imgContainer.appendChild(deleteBtn);
+        
+        imagePreview.appendChild(imgContainer);
+    }
+    
+    reader.readAsDataURL(file);
+}
+
+// Image preview
+document.getElementById('image1').addEventListener('change', function() {
+    displayImagePreview(this);
+});
+document.getElementById('image2').addEventListener('change', function() {
+    displayImagePreview(this);
+});
+document.getElementById('image3').addEventListener('change', function() {
+    displayImagePreview(this);
+});
+// Add more images
+function validateImage(input) {
+    const file = input.files[0];
+    const fileSize = file.size; // File size in bytes
+    const allowedFormats = ['image/jpeg', 'image/png', 'image/gif']; // Allowed image formats
+
+    // Check file size (assuming max size is 5MB)
+    if (fileSize > 5 * 1024 * 1024) {
+        document.getElementById('pic_error').textContent = 'File size exceeds 5MB.';
+        input.value = ''; // Clear the file input
+    } else if (!allowedFormats.includes(file.type)) {
+        document.getElementById('pic_error').textContent = 'Only JPEG, PNG, and GIF formats are allowed.';
+        input.value = ''; // Clear the file input
+    } else {
+        document.getElementById('pic_error').textContent = '';
+    }
+}
+
+
+
+function validateBookName() {
+    const bookName = document.getElementById('book_name').value.trim(); // Remove leading and trailing whitespaces
+    const errorElement = document.getElementById('book_name_error');
+    const regex = /^[A-Za-z][A-Za-z0-9\s]*$/; // Regex pattern to allow only letters, digits, and spaces, with the first character being a letter
+
+    if (!bookName) {
+        errorElement.textContent = 'Book name is required.';
+    } else if (!regex.test(bookName)) {
+        errorElement.textContent = 'Book name must start with a letter and contain only letters, digits, and spaces.';
+    } else {
+        errorElement.textContent = '';
+    }
+}
+
+
+function validateDescription() {
+    const description = document.getElementById('des').value.trim(); // Remove leading and trailing whitespaces
+    const errorElement = document.getElementById('des_error');
+    errorElement.textContent = description ? '' : 'Short description is required.';
+}
+
+function validateAuthor() {
+    const author = document.getElementById('author').value;
+    const errorElement = document.getElementById('author_error');
+    errorElement.textContent = author ? '' : 'Please select an author.';
+}
+
+function validatePublisher() {
+    const publisher = document.getElementById('publisher').value;
+    const errorElement = document.getElementById('publisher_error');
+    errorElement.textContent = publisher ? '' : 'Please select a publisher.';
+}
+
+function validatePublishedYear() {
+    const publishedYear = document.getElementById('published_year').value;
+    const errorElement = document.getElementById('published_year_error');
+    errorElement.textContent = publishedYear ? '' : 'Please select a published year.';
+}
+
+function validateCondition() {
+    const condition = document.getElementById('condition').value.trim(); // Remove leading and trailing whitespaces
+    const errorElement = document.getElementById('condition_error');
+    errorElement.textContent = condition ? '' : 'Condition is required.';
+}
+
+function validatePrice() {
+    const price = document.getElementById('price').value.trim(); // Remove leading and trailing whitespaces
+    const errorElement = document.getElementById('price_error');
+    errorElement.textContent = (!isNaN(price) && parseFloat(price) > 0) ? '' : 'Price must be a valid number greater than 0.';
+}
+
+// Add an event listener to the form submit event
+document.getElementById("add-book-form").addEventListener("submit", function(event) {
+    // Validate the form
+    if (!validateForm()) {
+        // Prevent form submission if validation fails
+        event.preventDefault();
+    }
+});
+
+// Function to validate the form
+function validateForm() {
+    validateBookName();
+    validateDescription();
+    validateAuthor();
+    validatePublisher();
+    validatePublishedYear();
+    validateCondition();
+    validatePrice();
+    
+    // Check if any error message exists
+    const errorMessages = document.querySelectorAll('.error');
+    for (let i = 0; i < errorMessages.length; i++) {
+        if (errorMessages[i].textContent) {
+            return false; // Return false if any validation fails
         }
+    }
+    return true; // Return true if all fields are valid
+}
 
-        // Function to validate file inputs
-        function validateFileInput(fileInput, errorElement) {
-            var file = fileInput[0].files[0];
-            var allowedExtensions = /(\.jpg|\.jpeg|\.png|\.gif)$/i;
 
-            if (!file) {
-                errorElement.text('Please select an image file');
-                return false;
-            } else if (!allowedExtensions.test(file.name)) {
-                errorElement.text('Only JPG, JPEG, PNG, and GIF files are allowed');
-                return false;
-            } else {
-                errorElement.text('');
-                return true;
-            }
-        }
-
-        // Validate form fields on input
-        $('#book_name').on('input', function() {
-            validateInput($(this), $('#book_name_error'), 'Book Name is required');
-        });
-
-        $('#author').on('input', function() {
-            validateInput($(this), $('#author_error'), 'Author is required');
-        });
-
-        $('#publisher').on('input', function() {
-            validateInput($(this), $('#publisher_error'), 'Publisher is required');
-        });
-
-        $('#published_year').on('input', function() {
-            var year = $(this).val();
-            if (year < 1000 || year > 9999 || isNaN(year)) {
-                $('#published_year_error').text('Please enter a valid year');
-            } else {
-                $('#published_year_error').text('');
-            }
-        });
-
-        $('#condition').on('input', function() {
-            validateInput($(this), $('#condition_error'), 'Condition is required');
-        });
-
-        $('#price').on('input', function() {
-            var price = $(this).val();
-            if (isNaN(price)) {
-                $('#price_error').text('Please enter a valid price');
-            } else {
-                $('#price_error').text('');
-            }
-        });
-
-        $('#isbn').on('input', function() {
-            validateInput($(this), $('#isbn_error'), 'ISBN is required');
-        });
-
-        $('#category').on('input', function() {
-            validateInput($(this), $('#category_error'), 'Category is required');
-        });
-
-        // Validate file inputs
-        $('.file-input').on('change', function() {
-            validateFileInput($(this), $(this).siblings('.error'));
-        });
-
-        // Submit form on button click
-        $('#submit-btn').click(function(e) {
-            e.preventDefault();
-
-            // Validate all fields
-            var isValid = true;
-            isValid = validateInput($('#book_name'), $('#book_name_error'), 'Book Name is required') && isValid;
-            isValid = validateInput($('#author'), $('#author_error'), 'Author is required') && isValid;
-            isValid = validateInput($('#publisher'), $('#publisher_error'), 'Publisher is required') && isValid;
-
-            var year = $('#published_year').val();
-            if (year < 1000 || year > 9999 || isNaN(year)) {
-                $('#published_year_error').text('Please enter a valid year');
-                isValid = false;
-            }
-
-            isValid = validateInput($('#condition'), $('#condition_error'), 'Condition is required') && isValid;
-
-            var price = $('#price').val();
-            if (isNaN(price)) {
-                $('#price_error').text('Please enter a valid price');
-                isValid = false;
-            }
-
-            isValid = validateInput($('#isbn'), $('#isbn_error'), 'ISBN is required') && isValid;
-            isValid = validateInput($('#category'), $('#category_error'), 'Category is required') && isValid;
-
-            // Validate file inputs
-            $('.file-input').each(function() {
-                isValid = validateFileInput($(this), $(this).siblings('.error')) && isValid;
-            });
-
-            // If all validations pass, submit the form
-            if (isValid) {
-                $('#add-book-form').submit();
-            }
-        });
-    });
 </script>
+
+<style>
+.image-container {
+    position: relative;
+    display: inline-block;
+    margin-right: 10px;
+}
+
+.img-thumbnail {
+    width: 200px;
+    height: 200px;
+}
+
+.delete-btn {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background-color: rgba(255, 255, 255, 0.7);
+    border: none;
+    border-radius: 50%;
+    padding: 5px;
+    cursor: pointer;
+}
+</style>
+
 
 <?php
 include("../includes/scripts.php");

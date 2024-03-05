@@ -37,12 +37,18 @@ if(isset($_POST['add_ubook'])) {
         $sql_insert_book = "INSERT INTO tbl_usedbooks (ubook_sellerid, ubook_name, ubook_author, ubook_publisher, ubook_year, ubook_condition, ubook_price, ubook_picid, ubook_description) 
                             VALUES ('$seller_id', '$book_name', '$author', '$publisher', '$year', '$condition', '$price', '$pic_id', '$description')";
         if(mysqli_query($conn, $sql_insert_book)) {
-            echo "<div class='alert alert-success'>Data inserted successfully!</div>";
+            $_SESSION["message"] = "Data inserted successfully!";
+            header("Location: ubook_view.php");
+            exit(0);
         } else {
-            echo "<div class='alert alert-danger'>Error inserting book details: " . mysqli_error($conn) . "</div>";
+            $_SESSION["message"] = "Error inserting book details: " ;
+            header("Location: usedbooks.php");
+            exit(0);
         }
     } else {
-        echo "<div class='alert alert-danger'>Error inserting image filenames: " . mysqli_error($conn) . "</div>";
+        $_SESSION["message"] = "Error inserting image filenames: " ;
+        header("Location:  usedbooks.php");
+        exit(0);
     }
 }
 
