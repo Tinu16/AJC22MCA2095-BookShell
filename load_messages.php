@@ -2,40 +2,32 @@
 session_start();
 include("../dbcon.php");
 
-if(isset($_SESSION['auth_user'])) {
-    // Check if book_id is provided
-    if(isset($_GET['book_id']) && !empty($_GET['book_id'])) {
-        // Get the book_id from the query string
-        $book_id = $_GET['book_id'];
-        $user_id = $_SESSION['auth_user']['user_id'];
+if(isset($_SESSION['auth_user']) && isset($_GET['book_id'])) {
+    $book_id = $_GET['book_id'];
+    $current_user_id = $_SESSION['auth_user']['user_id'];
 
-        // Fetch messages related to the book for the logged-in user
-        $query = "SELECT m.message, IF(m.sender_id = '$user_id', 'You', IFNULL(c.customer_firstname, u.user_email)) AS sender_name
-                  FROM tbl_message m
-                  INNER JOIN tbl_user u ON m.sender_id = u.user_id
-                  LEFT JOIN tbl_customer c ON u.user_id = c.customer_id
-                  WHERE (m.sender_id = '$user_id' OR m.receiver_id = '$user_id')
-                  AND m.book_id = '$book_id'
-                  ORDER BY m.message_id ASC";
+    // Fetch messages from the database
+    $query = "SELECT m.*, u.user_email, c.customer_firstname FROM tbl_message m
+              LEFT JOIN tbl_user u ON m.sender_id = u.user_id
+              LEFT JOIN tbl_customer c ON m.sender_id = c.customer_id
+              WHERE m.book_id = '$book_id' ORDER BY m.message_id ASC";
+    $result = mysqli_query($conn, $query);
 
-        $result = mysqli_query($conn, $query);
-
-        // Check if there are any messages
-        if(mysqli_num_rows($result) > 0) {
-            // Loop through each message and display them along with sender names
-            while($row = mysqli_fetch_assoc($result)) {
-                $senderName = $row['sender_name'];
-                $message = $row['message'];
-                // Format the message as per your requirements
-                echo "<div><strong>$senderName:</strong> $message</div>";
-            }
-        } else {
-            echo "<p>No messages for this book</p>";
+    // Check if there are messages
+    if(mysqli_num_rows($result) > 0) {
+        while($row = mysqli_fetch_assoc($result)) {
+            $message = htmlspecialchars($row['message']);
+            $sender_name = $row['customer_firstname'] ?? $row['user_email'];
+            $sender_id = $row['sender_id'];
+            
+            // Determine message style based on sender
+            $messageStyle = ($sender_id == $current_user_id) ? "text-align: right; background-color: #0380fc; color: white;" : "text-align: left; background-color: white; color: #333;";
+            
+            // Output message with appropriate style
+            echo "<div style='padding: 5px; margin: 5px; border-radius: 5px; $messageStyle'><strong></strong>$message</div>";
         }
     } else {
-        echo "<p>Book ID not provided</p>";
+        echo "<div>No messages yet.</div>";
     }
-} else {
-    echo "<p>User not logged in</p>";
 }
 ?>
